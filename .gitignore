@@ -1,0 +1,9 @@
+# Alice's attempt log and settings stay on her PC: never pushed, never touched
+# by an update.
+/data/
+/recorder.json
+# John's side only.
+/release.bat
+/no-updates
+__pycache__/
+*.pyc
