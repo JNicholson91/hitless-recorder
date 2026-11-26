@@ -22,6 +22,31 @@ leave it running.
 
 **summary.bat** shows how many runs reached each split and where they ended.
 
+## Progress bar overlay (OBS)
+
+A speedrun-style bar for your stream: which split you're on ("9/15"), the split
+name, in-game time and hits, with the whole run as one bar. It's solid up to your
+first hit, fainter after, and has a pink mark on every split you got hit in.
+
+1. Double-click **progress-overlay.bat**. It copies the overlay link and opens
+   a preview.
+2. In OBS: **+** under Sources → **Browser** → untick **Local file** → paste the
+   link into **URL** → width **600**, height **110** → **OK**.
+
+That's it. Nothing needs to stay open: it fills in whenever AutoHitCounter is
+open, and keeps the last run on screen if AutoHitCounter closes.
+
+To change how it looks, add settings to the end of the link, joined with `&`:
+
+| Setting | Does | Example |
+| --- | --- | --- |
+| `scale` | size | `?scale=1.3` |
+| `accent` | bar colour (use `%23` for `#`) | `?accent=%23f0abfc` |
+| `hit` | colour of hit marks and the hit count | `?hit=%23ff3b6b` |
+| `after` | how strong the bar is after a hit, 0 to 1 | `?after=0.25` |
+| `igt=0` | hide the in-game time | `?igt=0` |
+| `name=0`, `hits=0`, `count=0` | hide the split name / hits / "9/15" | `?scale=0.8&igt=0` |
+
 ## Updates
 
 There's nothing to install when John improves the recorder. `record.bat` and

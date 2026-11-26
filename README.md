@@ -55,6 +55,7 @@ Attempt record (v2):
  "first_hit":{"split":1,"name":"The Last Giant","at":"...","igt_ms":210000,"into_split_ms":90000},
  "hitless_through":1,"hitless":false,"hits_total":1,"run_ms":230000,
  "splits":[{"name":"Old Dragonslayer","hits":0,"duration_ms":120000}, ...],
+ "route":["Old Dragonslayer","The Last Giant", ...],
  "trivial":false,"flags":[]}
 ```
 
@@ -62,6 +63,7 @@ Attempt record (v2):
 - `attempt`: AHC's attempt counter during that run
 - `hitless_through`: splits cleared before the first hit (= `splits_cleared` if none)
 - `first_hit.into_split_ms`: in-game time into that split when the hit landed
+- `splits` covers the splits the run reached; `route` lists every split name
 - `run_ms`: in-game time of the run; `duration_ms` null = unknown
 - `trivial`: reset at split 1, no hits, under 10 s IGT; excluded from stats
 - `flags`: `joined_midrun` (recorder started mid-run: no start time, earlier split
@@ -92,3 +94,18 @@ one-line note (Alice sees it), and pushes. Nothing reaches her until then. The
 remote comes from `REMOTE` in `update.py`. `release.bat` and `no-updates` are
 gitignored: the `no-updates` marker keeps John's working copy from updating
 itself.
+
+## OBS progress overlay
+
+`overlay/progress.html` is a browser source that connects to AutoHitCounter's
+WebSocket itself, the same way AutoHitCounter's own overlay does. So there is no
+process to run, and it updates along with the rest of the folder. It shows split
+n/N (group header rows not counted), the split name, live IGT (from `igt`
+messages) and total hits. The bar is the same picture as the WitchStats run
+history: cleared splits solid up to the first hit and faded after it, the current
+split lightly lit, and a mark on every split with hits. If the socket closes it
+keeps the last state and reconnects every 2 s. Settings are URL parameters
+(listed in the file's header comment and SETUP.md). `progress-overlay.bat`
+builds the `file:///` URL, copies it and opens a preview. `tests/test_overlay.py`
+drives it in headless Chrome against `fake_ahc.Server`, and skips without
+Playwright.

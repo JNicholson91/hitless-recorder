@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Hitless progress</title>
+<!--
+  OBS browser source: a speedrun-style progress bar fed live by AutoHitCounter.
+
+  It talks to AutoHitCounter's own overlay feed (ws://127.0.0.1:16200), the same
+  one AutoHitCounter's overlay uses, so nothing else needs to be running. If
+  AutoHitCounter is closed it keeps the last run on screen and reconnects.
+
+  Settings ride in the URL (the URL is the setting), e.g.
+    progress.html?accent=%23c084fc&scale=1.2&igt=0
+  accent  bar colour before the first hit        (default #9d7bf5)
+  hit     colour of hit marks and the hit count  (default #fb7185)
+  text    text colour                            (default #f5f1fa)
+  after   how strong the bar is after a hit, 0-1 (default 0.4)
+  scale   size multiplier                        (default 1)
+  igt=0 / name=0 / hits=0 / count=0   hide the in-game time / split name /
+                                      hit count / "9/15 split"
+  port    AutoHitCounter's port                  (default 16200)
+-->
+<style>
+  :root {
+    --accent: #9d7bf5; --hit: #fb7185; --text: #f5f1fa; --after: 0.4; --scale: 1;
+  }
+  html, body { margin: 0; background: transparent; overflow: hidden; }
+  body { font-family: "Segoe UI", system-ui, -apple-system, sans-serif; color: var(--text);
+    font-size: calc(18px * var(--scale)); }
+  /* Reads over moving footage without a box behind it. */
+  .panel { padding: calc(8px * var(--scale)) calc(10px * var(--scale));
+    text-shadow: 0 0 3px rgba(0,0,0,.9), 0 1px 2px rgba(0,0,0,.9);
+    opacity: 0; transition: opacity .3s; }
+  .panel.ready { opacity: 1; }
+  .row { display: flex; align-items: baseline; gap: calc(14px * var(--scale)); }
+  .count, .hits { display: flex; flex-direction: column; align-items: center; line-height: 1.05; }
+  .count b, .hits b { font-size: 1.25em; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .count small, .hits small, .igt { font-size: .58em; letter-spacing: .12em;
+    text-transform: uppercase; opacity: .85; }
+  .mid { flex: 1; min-width: 0; text-align: center; display: flex; flex-direction: column; }
+  .name { font-weight: 700; letter-spacing: .06em; text-transform: uppercase; white-space: nowrap;
+    overflow: hidden; text-overflow: ellipsis; font-size: 1.05em; }
+  .igt { font-variant-numeric: tabular-nums; letter-spacing: .08em; margin-top: 2px; }
+  .hits b.some { color: var(--hit); }
+  .bar { position: relative; height: calc(9px * var(--scale)); margin-top: calc(7px * var(--scale));
+    border-radius: 999px; background: rgba(10, 6, 16, .55);
+    box-shadow: 0 0 0 1px rgba(255,255,255,.18), 0 1px 4px rgba(0,0,0,.6); overflow: hidden; }
+  .bar > div { position: absolute; top: 0; bottom: 0; left: 0; border-radius: 999px; }
+  .bar .current { background: rgba(255,255,255,.14); border-radius: 0; }
+  .bar .faded { background: var(--accent); opacity: var(--after); }
+  .bar .solid { background: var(--accent); }
+  .bar .mark { width: calc(3px * var(--scale)); margin-left: calc(-1.5px * var(--scale));
+    background: var(--hit); border-radius: 2px; box-shadow: 0 0 3px rgba(0,0,0,.6); }
+  .hide { display: none !important; }
+</style>
+</head>
+<body>
+<div class="panel" id="panel">
+  <div class="row">
+    <div class="count" id="countBox"><b id="count">0/0</b><small>split</small></div>
+    <div class="mid" id="midBox"><span class="name" id="name"></span><span class="igt" id="igt"></span></div>
+    <div class="hits" id="hitsBox"><b id="hits">0</b><small id="hitsLabel">hits</small></div>
+  </div>
+  <div class="bar" id="bar"></div>
+</div>
+<script>
+(function () {
+  var P = new URLSearchParams(location.search);
+  var root = document.documentElement.style;
+  [["accent", "--accent"], ["hit", "--hit"], ["text", "--text"],
+   ["after", "--after"], ["scale", "--scale"]].forEach(function (kv) {
+    if (P.get(kv[0])) root.setProperty(kv[1], P.get(kv[0]));
+  });
+  function off(key, id) { if (P.get(key) === "0") document.getElementById(id).classList.add("hide"); }
+  off("count", "countBox"); off("hits", "hitsBox"); off("name", "name"); off("igt", "igt");
+  var port = parseInt(P.get("port") || "16200", 10);
+  var $ = function (id) { return document.getElementById(id); };
+
+  function pct(x) { return (Math.max(0, Math.min(1, x)) * 100).toFixed(3) + "%"; }
+  function piece(cls, left, width) {
+    var d = document.createElement("div");
+    d.className = cls;
+    d.style.left = pct(left);
+    if (width !== undefined) d.style.width = pct(width);
+    return d;
+  }
+
+  function render(d) {
+    var kids = (d.splits || []).filter(function (s) { return !s.isParent; });
+    var n = kids.length;
+    if (!n) return;
+    var done = !!d.isRunComplete, cur = 0;
+    kids.forEach(function (s, i) { if (s.isCurrent) cur = i; });
+    if (done) cur = n;
+    var first = -1, hits = 0;
+    kids.forEach(function (s, i) {
+      var h = s.hits || 0;
+      hits += h;
+      if (h && first < 0) first = i;
+    });
+
+    $("count").textContent = Math.min(cur + 1, n) + "/" + n;
+    $("name").textContent = done ? "Finished" : kids[cur].name;
+    $("hits").textContent = hits;
+    $("hits").className = hits ? "some" : "";
+    $("hitsLabel").textContent = hits === 1 ? "hit" : "hits";
+    if (d.inGameTime && !$("igt").dataset.live) $("igt").textContent = d.inGameTime.replace(/^0(\d:)/, "$1");
+
+    // The whole run on one bar: splits cleared, solid until the first hit and
+    // fainter after it, the split being played lightly lit, a mark on every
+    // split that took a hit.
+    var bar = $("bar"), seg = 1 / n, cleared = done ? 1 : cur * seg;
+    bar.innerHTML = "";
+    if (!done) bar.appendChild(piece("current", cur * seg, seg));
+    bar.appendChild(piece("faded", 0, cleared));
+    var solidTo = first < 0 ? cleared : Math.min(cleared, first * seg);
+    if (solidTo > 0) bar.appendChild(piece("solid", 0, solidTo));
+    kids.forEach(function (s, i) {
+      if (s.hits) bar.appendChild(piece("mark", (i + 0.5) * seg));
+    });
+    $("panel").classList.add("ready");
+  }
+
+  function connect() {
+    var ws;
+    try { ws = new WebSocket("ws://127.0.0.1:" + port); }
+    catch (e) { return setTimeout(connect, 2000); }
+    ws.onmessage = function (e) {
+      var msg;
+      try { msg = JSON.parse(e.data); } catch (err) { return; }
+      if (msg.type === "state" && msg.data) render(msg.data);
+      else if (msg.type === "igt" && typeof msg.data === "string") {
+        $("igt").textContent = msg.data;
+        $("igt").dataset.live = "1";
+      }
+    };
+    // AutoHitCounter closed or not open yet: keep the last run up, try again.
+    ws.onclose = function () { $("igt").dataset.live = ""; setTimeout(connect, 2000); };
+  }
+  connect();
+})();
+</script>
+</body>
+</html>

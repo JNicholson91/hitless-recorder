@@ -297,6 +297,7 @@ class Tracker:
             "hits_total": hits,
             "run_ms": run_ms,
             "splits": splits,
+            "route": list(final.titles),   # every split name, reached or not
             "trivial": trivial,
             "flags": sorted(flags),
         }

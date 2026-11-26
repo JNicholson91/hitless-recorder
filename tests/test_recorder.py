@@ -119,6 +119,7 @@ class TestTracker(unittest.TestCase):
         self.assertIsNotNone(x["started_at"])
         self.assertFalse(x["trivial"])
         self.assertEqual(x["flags"], [])
+        self.assertEqual(x["route"], SPLITS)          # whole route, not just reached splits
 
     def test_undo_then_real_hit(self):
         a = self.a
