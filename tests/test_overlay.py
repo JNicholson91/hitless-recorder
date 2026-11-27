@@ -90,6 +90,26 @@ class TestOverlay(unittest.TestCase):
             "getComputedStyle(document.documentElement).getPropertyValue('--accent')")
         self.assertEqual(accent.strip(), "#ff00ff")
 
+    def test_light_theme_for_a_pale_layout(self):
+        """Her layout puts the bar on pale mint, where the default light text
+        washed out. theme=light switches to dark ink; a colour setting still
+        wins over the theme."""
+        self.page.goto("file://%s?port=%d&theme=light&hit=%%23000000" % (PAGE, self.srv.port))
+        self.page.wait_for_selector("#panel.ready")
+        css = lambda v: self.page.evaluate(
+            "getComputedStyle(document.documentElement).getPropertyValue('%s')" % v).strip()
+        self.assertEqual(css("--text"), "#1a1425")
+        self.assertEqual(css("--accent"), "#7c3aed")
+        self.assertEqual(css("--hit"), "#000000")
+        colour = self.page.evaluate("getComputedStyle(document.body).color")
+        self.assertEqual(colour, "rgb(26, 20, 37)")
+
+    def test_panel_puts_a_card_behind_it(self):
+        self.page.goto("file://%s?port=%d&panel=1" % (PAGE, self.srv.port))
+        self.page.wait_for_selector("#panel.ready")
+        bg = self.page.evaluate("getComputedStyle(document.getElementById('panel')).backgroundColor")
+        self.assertNotEqual(bg, "rgba(0, 0, 0, 0)")
+
 
 if __name__ == "__main__":
     unittest.main()

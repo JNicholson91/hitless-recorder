@@ -41,6 +41,8 @@ To change how it looks, add settings to the end of the link, joined with `&`:
 
 | Setting | Does | Example |
 | --- | --- | --- |
+| `theme=light` | dark text, for a pale layout behind it | `?theme=light` |
+| `panel=1` | a solid card behind it, for busy backgrounds | `?panel=1` |
 | `scale` | size | `?scale=1.3` |
 | `accent` | bar colour (use `%23` for `#`) | `?accent=%23f0abfc` |
 | `hit` | colour of hit marks and the hit count | `?hit=%23ff3b6b` |
