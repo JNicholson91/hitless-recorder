@@ -6,7 +6,6 @@ challenge. Pure stdlib Python 3.8+, no dependencies.
 ```
 python -m hitless check   [--port 16200]    connect and show AHC's current state
 python -m hitless watch   [--port 16200]    record (leave running)
-python -m hitless summary [--profile NAME] [--all]
 python -m unittest discover -s tests        tests (fake AHC incl. a WebSocket server)
 ```
 
@@ -65,7 +64,7 @@ Attempt record (v2):
 - `first_hit.into_split_ms`: in-game time into that split when the hit landed
 - `splits` covers the splits the run reached; `route` lists every split name
 - `run_ms`: in-game time of the run; `duration_ms` null = unknown
-- `trivial`: reset at split 1, no hits, under 10 s IGT; excluded from stats
+- `trivial`: reset at split 1, no hits, under 10 s IGT; left out of the WitchStats page
 - `flags`: `joined_midrun` (recorder started mid-run: no start time, earlier split
   times unknown), `recorder_restarted`, `ended_offline` (reset while the recorder was
   off: counts are from the last state it saw), `first_hit_inferred`, `splits_edited`

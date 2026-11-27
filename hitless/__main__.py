@@ -2,7 +2,6 @@
 
     python -m hitless check                     is AutoHitCounter reachable? show its state
     python -m hitless watch                     record attempts (leave running while streaming)
-    python -m hitless summary [--profile NAME]  where runs end, per split
 """
 from __future__ import annotations
 
@@ -12,7 +11,7 @@ import sys
 import time
 from pathlib import Path
 
-from . import ahc, stats
+from . import ahc
 from .store import Store
 from .tracker import Tracker
 
@@ -145,25 +144,6 @@ def cmd_watch(args) -> int:
     return 0
 
 
-def cmd_summary(args) -> int:
-    cfg = load_config()
-    store = Store(data_dir(args, cfg))
-    all_attempts = store.attempts()
-    if not all_attempts:
-        print(f"No attempts recorded yet in {store.dir}")
-        return 0
-    profile = args.profile
-    if profile is None:
-        profile = max(all_attempts, key=lambda a: a.get("ended_ms") or 0)["profile"]
-    rows = stats.usable(all_attempts, profile, include_trivial=args.all)
-    others = {k: v for k, v in stats.profiles(all_attempts).items() if k != profile}
-    print(stats.format_summary(profile, stats.summary(rows)))
-    if others:
-        print("\nOther profiles: " + ", ".join(f"{k} ({v})" for k, v in others.items())
-              + "   (use --profile \"NAME\")")
-    return 0
-
-
 def main(argv=None) -> int:
     for stream in (sys.stdout, sys.stderr):
         try:
@@ -173,16 +153,13 @@ def main(argv=None) -> int:
     ap = argparse.ArgumentParser(prog="hitless", description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = ap.add_subparsers(dest="cmd", required=True)
-    for name in ("check", "watch", "summary"):
+    for name in ("check", "watch"):
         sp = sub.add_parser(name)
         sp.add_argument("--data", help=f"data folder (default: {DEFAULT_DATA})")
         if name in ("check", "watch"):
             sp.add_argument("--port", type=int, help=f"AutoHitCounter port (default {ahc.PORT})")
-        if name == "summary":
-            sp.add_argument("--profile", help="AutoHitCounter profile name")
-            sp.add_argument("--all", action="store_true", help="include trivial resets")
     args = ap.parse_args(argv)
-    return {"check": cmd_check, "watch": cmd_watch, "summary": cmd_summary}[args.cmd](args)
+    return {"check": cmd_check, "watch": cmd_watch}[args.cmd](args)
 
 
 if __name__ == "__main__":

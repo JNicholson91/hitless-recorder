@@ -11,7 +11,7 @@ sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(Path(__file__).parent))
 
 from fake_ahc import FakeAHC, Server  # noqa: E402
-from hitless import ahc, stats  # noqa: E402
+from hitless import ahc  # noqa: E402
 from hitless.store import Store  # noqa: E402
 from hitless.tracker import Tracker  # noqa: E402
 
@@ -163,7 +163,6 @@ class TestTracker(unittest.TestCase):
         a.tick(3000); a.reset()                     # 3 s, no hits: saved as trivial
         (x,) = self.r.attempts()
         self.assertTrue(x["trivial"])
-        self.assertEqual(stats.usable(self.r.attempts()), [])
 
     def test_previous_split_hotkey(self):
         a = self.a
@@ -211,22 +210,6 @@ class TestTracker(unittest.TestCase):
         x, y = self.r.attempts()
         self.assertEqual((x["outcome"], x["profile"]), ("abandoned", "Ds2 Hitless"))
         self.assertEqual(y["profile"], "Ds2 Practice")
-
-    def test_summary_funnel(self):
-        a = self.a
-        a.tick(MIN); a.hit(); a.reset()
-        for _ in range(2):
-            a.tick(2 * MIN); a.split(); a.tick(MIN); a.hit(); a.reset()
-        a.tick(4 * MIN); a.split(); a.tick(MIN); a.split(); a.tick(MIN); a.split(); a.reset()
-        s = stats.summary(stats.usable(self.r.attempts()))
-        f = s["funnel"]
-        self.assertEqual([r["reached"] for r in f], [4, 3, 1])
-        self.assertEqual([r["died"] for r in f], [1, 2, 0])
-        self.assertAlmostEqual(f[1]["death_rate"], 2 / 3)
-        self.assertEqual(f[0]["median_clear_ms"], 2 * MIN)
-        self.assertEqual(s["hitless_completions"], 1)
-        self.assertEqual(s["nemesis"], ("The Last Giant", 2))
-        self.assertIn("The Pursuer", stats.format_summary("Ds2 Hitless", s))
 
 
 class TestWebSocket(unittest.TestCase):

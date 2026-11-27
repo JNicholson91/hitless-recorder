@@ -20,7 +20,8 @@ leave it running.
 4. Close the window when you're done. If you close it (or AutoHitCounter)
    mid-run, the run carries on from where it was.
 
-**summary.bat** shows how many runs reached each split and where they ended.
+Your stats show on the **DS2 Hitless** page of your site after you run
+`publish.bat`.
 
 ## Progress bar overlay (OBS)
 
